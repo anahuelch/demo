@@ -22,6 +22,7 @@ public class Phone {
 
     private String countryCode;
 
+    @Getter @Setter
     @ManyToOne
     private User user;
 }

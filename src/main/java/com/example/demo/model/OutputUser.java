@@ -7,7 +7,7 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class NewUser {
+public class OutputUser {
     public String id;
     public String created;
     public String modified;

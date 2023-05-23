@@ -5,7 +5,6 @@ import com.example.demo.model.User;
 import com.example.demo.repository.IUserRepository;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
-
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -18,34 +17,46 @@ public class UserService implements IUserService{
 
     @Override
     public User createUser(User user) throws Exception {
-        //Validamos el formato del email y del password
+        //Hacemos algunas validaciones requeridas:
         if(!isAValidEmail(user.getEmail())) {
             throw new Exception("El email no cumple con el formato", new Throwable());
         } else if (!isAValidPassword(user.getPassword())) {
             throw new Exception("La contraseña no cumple con el formato", new Throwable());
+        } else if (userRepository.findByEmail(user.getEmail()) != null) {
+            throw new Exception("El correo ya ha sido registrado", new Throwable());
         }
 
+        //Seteamos por defecto el usuario como activo al momento de crearlo.
         user.setActive(true);
+        //Creamos el usuario
         User newUser = userRepository.save(user);
 
+        //Una vez creado el usuario, agregamos los teléfonos asociados en la tabla "phone"
         List<Phone> phones = user.getPhones();
-        for(int i=0; i < phones.size(); i++){
-            phones.get(i).setUser(newUser);
+        if(phones.size() > 0) {
+            for (int i = 0; i < phones.size(); i++) {
+                phones.get(i).setUser(newUser);
+            }
+            phoneService.createPhones(phones);
         }
-        phoneService.createPhones(phones);
 
         return newUser;
     }
 
     @Override
-    public User getUser(Long id) {
-        return userRepository.findById(id).get();
+    public List<User> getAllUsers() {
+        return userRepository.findAll();
     }
 
     @Override
-    public boolean deleteUser(Long id) {
+    public User getUser(String email) {
+        return userRepository.findByEmail(email);
+    }
+
+    @Override
+    public boolean deleteUser(User user) {
         try{
-            userRepository.deleteById(id);
+            userRepository.delete(user);
             return true;
         }
         catch (Exception ex){
@@ -53,10 +64,7 @@ public class UserService implements IUserService{
         }
     }
 
-    public boolean existById(Long id){
-        return userRepository.existsById(id);
-    }
-
+    //método que utiliza expresiones regulares para validar que el formato de un email sea correcto.
     public boolean isAValidEmail(String emailAddress) {
         String regexPattern = "^(.+)@(\\S+)$";
         return Pattern.compile(regexPattern)
@@ -64,6 +72,7 @@ public class UserService implements IUserService{
                 .matches();
     }
 
+    //método que utiliza expresiones regulares para validar que el formato de la contraseña sea correcto.
     public boolean isAValidPassword(String password) {
         String regexPattern = "^(?=.*[A-Z])(?=.*[0-9].*[0-9]).+$";
         return Pattern.compile(regexPattern)
